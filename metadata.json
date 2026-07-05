@@ -1,0 +1,6 @@
+{
+  "name": "Universo CF",
+  "description": "O portal educativo e literário da Universo CF: livros digitais, ficção original e manuais práticos criados por Cardoso Francisco.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
