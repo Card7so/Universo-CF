@@ -179,9 +179,7 @@ export default function UniversoIAChat({
   // Check if we are running in the offline/static exported version
   const isOffline = typeof window !== "undefined" && (
     window.location.protocol === "file:" || 
-    !window.location.port || 
-    window.location.hostname.includes("github.io") ||
-    !process.env.NODE_ENV
+    window.location.hostname.includes("github.io")
   );
 
   // Load saved chat history and Gemini key on mount
