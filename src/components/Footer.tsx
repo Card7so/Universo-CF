@@ -94,7 +94,7 @@ export default function Footer({ onLinkClick }: FooterProps) {
               </span>
             </div>
             <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-sm">
-              Um espaço onde a imaginação encontra a inovação, permitindo que novas ganhem vida e sejam compartilhadas com o mundo.
+              Um espaço onde a imaginação encontra a inovação, permitindo que novas ideias ganhem vida e sejam compartilhadas com o mundo.
             </p>
           </div>
 
@@ -238,7 +238,7 @@ export default function Footer({ onLinkClick }: FooterProps) {
           
           {/* Logo brand copyrights */}
           <div className="text-center sm:text-left">
-            © {currentYear} Universo CF — Cardoso Francisco. Todos os direitos reservados.
+            {"\u00A9"} {currentYear} Universo CF - Cardoso Francisco. Todos os direitos reservados.
           </div>
 
           <div className="flex items-center gap-6">

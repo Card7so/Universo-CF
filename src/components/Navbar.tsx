@@ -207,7 +207,7 @@ export default function Navbar({ activeSection, onSectionClick, onContactClick }
                   className="hover:text-amber-500/80 transition-colors text-left focus:outline-none cursor-pointer"
                   title="Estúdio"
                 >
-                  © 2026 Universo CF • Angola
+                  {"\u00A9"} 2026 Universo CF - Angola
                 </button>
               </div>
             </motion.div>

@@ -14,6 +14,72 @@ const ai = new GoogleGenAI({
   },
 });
 
+// Helper function to commit/update files directly in the user's GitHub repository when in Vercel
+async function handleGitHubFileUpdate(filePath: string, content: string, isDelete: boolean = false) {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO;
+  const branch = process.env.GITHUB_BRANCH || "main";
+
+  if (!token || !repo) {
+    throw new Error("A integração com o GitHub não está configurada no Vercel. Por favor, adicione as variáveis de ambiente GITHUB_TOKEN e GITHUB_REPO.");
+  }
+
+  // 1. Check if the file exists on GitHub to get its SHA
+  const getUrl = `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`;
+  let sha: string | null = null;
+
+  try {
+    const getRes = await fetch(getUrl, {
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "Universo-IA-App"
+      }
+    });
+    if (getRes.ok) {
+      const fileData = await getRes.json() as any;
+      sha = fileData.sha;
+    }
+  } catch (err) {
+    console.log("Erro ao obter o SHA do arquivo (pode ser um arquivo novo):", err);
+  }
+
+  // 2. Perform PUT or DELETE to update the repository
+  const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+  const method = isDelete ? "DELETE" : "PUT";
+  
+  const body: any = {
+    message: `Universo IA: ${isDelete ? "Remover" : "Atualizar"} ${filePath} através do Painel Administrativo`,
+    branch
+  };
+
+  if (sha) {
+    body.sha = sha;
+  }
+
+  if (!isDelete) {
+    body.content = Buffer.from(content, "utf-8").toString("base64");
+  }
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      "Authorization": `token ${token}`,
+      "Accept": "application/vnd.github.v3+json",
+      "Content-Type": "application/json",
+      "User-Agent": "Universo-IA-App"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Erro na API do GitHub (${res.status}): ${errText}`);
+  }
+
+  return true;
+}
+
 export default async function handler(req: any, res: any) {
   // Enable CORS
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -219,27 +285,45 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
             outcome = `Erro: Diretório '${targetDir}' não existe.`;
           }
         } else if (wsAction.type === "write_file") {
-          const fullPath = path.resolve(process.cwd(), wsAction.filePath);
-          if (!fullPath.startsWith(process.cwd())) {
-            outcome = "Erro: Acesso negado.";
+          const hasGitHub = !!(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO);
+          if (hasGitHub) {
+            await handleGitHubFileUpdate(wsAction.filePath, wsAction.fileContent || "", false);
+            outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi escrito diretamente no seu repositório GitHub! O Vercel iniciou um novo deploy automático para refletir a alteração.`;
           } else {
-            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-            fs.writeFileSync(fullPath, wsAction.fileContent || "", "utf-8");
-            outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi escrito com sucesso!`;
+            const fullPath = path.resolve(process.cwd(), wsAction.filePath);
+            if (!fullPath.startsWith(process.cwd())) {
+              outcome = "Erro: Acesso negado.";
+            } else {
+              fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+              fs.writeFileSync(fullPath, wsAction.fileContent || "", "utf-8");
+              outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi escrito localmente com sucesso!`;
+            }
           }
         } else if (wsAction.type === "patch_file") {
+          const hasGitHub = !!(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO);
           const fullPath = path.resolve(process.cwd(), wsAction.filePath);
           if (!fullPath.startsWith(process.cwd())) {
             outcome = "Erro: Acesso negado.";
-          } else if (fs.existsSync(fullPath)) {
-            let content = fs.readFileSync(fullPath, "utf-8");
+          } else if (fs.existsSync(fullPath) || hasGitHub) {
+            let content = "";
+            if (fs.existsSync(fullPath)) {
+              content = fs.readFileSync(fullPath, "utf-8");
+            } else {
+              content = fs.readFileSync(fullPath, "utf-8");
+            }
+
             const target = wsAction.targetContent;
             const replacement = wsAction.replacementContent;
 
             if (content.includes(target)) {
               content = content.replace(target, replacement);
-              fs.writeFileSync(fullPath, content, "utf-8");
-              outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi modificado com sucesso utilizando patch!`;
+              if (hasGitHub) {
+                await handleGitHubFileUpdate(wsAction.filePath, content, false);
+                outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi modificado diretamente no seu repositório GitHub via patch! O Vercel iniciou um novo deploy automático em instantes.`;
+              } else {
+                fs.writeFileSync(fullPath, content, "utf-8");
+                outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi modificado localmente com sucesso utilizando patch!`;
+              }
             } else {
               outcome = `Erro: O 'targetContent' fornecido não coincide exatamente com o conteúdo atual de '${wsAction.filePath}'.`;
             }
@@ -247,14 +331,20 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
             outcome = `Erro: O arquivo '${wsAction.filePath}' não existe para efetuar patch.`;
           }
         } else if (wsAction.type === "delete_file") {
-          const fullPath = path.resolve(process.cwd(), wsAction.filePath);
-          if (!fullPath.startsWith(process.cwd())) {
-            outcome = "Erro: Acesso negado.";
-          } else if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-            outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi removido do workspace.`;
+          const hasGitHub = !!(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO);
+          if (hasGitHub) {
+            await handleGitHubFileUpdate(wsAction.filePath, "", true);
+            outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi removido do seu repositório GitHub! O Vercel iniciou um novo deploy automático em instantes.`;
           } else {
-            outcome = `Erro: Arquivo '${wsAction.filePath}' não encontrado para remoção.`;
+            const fullPath = path.resolve(process.cwd(), wsAction.filePath);
+            if (!fullPath.startsWith(process.cwd())) {
+              outcome = "Erro: Acesso negado.";
+            } else if (fs.existsSync(fullPath)) {
+              fs.unlinkSync(fullPath);
+              outcome = `Sucesso: O arquivo '${wsAction.filePath}' foi removido localmente do workspace.`;
+            } else {
+              outcome = `Erro: Arquivo '${wsAction.filePath}' não encontrado para remoção local.`;
+            }
           }
         }
       } catch (err: any) {

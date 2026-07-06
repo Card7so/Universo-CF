@@ -159,7 +159,7 @@ export default function PrivacyPolicy({ onBackToHome }: PrivacyPolicyProps) {
           className="border-t border-white/10 mt-16 pt-10 flex flex-col sm:flex-row items-center justify-between gap-6"
         >
           <div className="text-xs text-slate-500 font-mono text-center sm:text-left">
-            © 2026 Universo CF • Todos os direitos reservados.
+            {"\u00A9"} 2026 Universo CF - Todos os direitos reservados.
           </div>
           <button
             onClick={onBackToHome}
