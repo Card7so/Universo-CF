@@ -184,7 +184,11 @@ export default function UniversoIAChat({
 
   // Load saved chat history and Gemini key on mount
   useEffect(() => {
-    const key = localStorage.getItem("universo_cf_gemini_key") || "";
+    let key = localStorage.getItem("universo_cf_gemini_key") || "";
+    if (!key) {
+      key = "AIzaSyCgbJcoMVmJwk-U95FbUI1hqjd7sPiLJwk";
+      localStorage.setItem("universo_cf_gemini_key", key);
+    }
     setGeminiKey(key);
 
     const initialGreeting = mode === "admin" 
@@ -538,7 +542,8 @@ Responda rigorosamente no formato JSON abaixo:
             message: processedMessageText,
             history: messages.slice(-10).map(m => ({ role: m.role, text: m.text })),
             projects: activeProjects,
-            comments: commentsData
+            comments: commentsData,
+            clientApiKey: geminiKey
           })
         });
 
@@ -611,16 +616,14 @@ Responda rigorosamente no formato JSON abaixo:
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Key Management Icon (Specifically useful when offline) */}
-          {isOffline && (
-            <button 
-              onClick={() => setShowKeyModal(true)}
-              title="Configurar Chave de API Gemini"
-              className="p-2.5 rounded-xl bg-white/2 hover:bg-white/5 border border-white/5 hover:border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
-            >
-              <Key className="w-4 h-4" />
-            </button>
-          )}
+          {/* Key Management Icon (Always accessible to easily override or configure a key) */}
+          <button 
+            onClick={() => setShowKeyModal(true)}
+            title="Configurar Chave de API Gemini"
+            className="p-2.5 rounded-xl bg-white/2 hover:bg-white/5 border border-white/5 hover:border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+          >
+            <Key className="w-4 h-4" />
+          </button>
 
           <a 
             href="/api/download-zip" 
@@ -882,10 +885,10 @@ Responda rigorosamente no formato JSON abaixo:
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
                 <Key className="w-5 h-5" />
               </div>
-              <h4 className="font-display font-bold text-base text-white">Chave API Gemini (Offline)</h4>
+              <h4 className="font-display font-bold text-base text-white">Chave API Gemini</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Ao rodar a versão baixada do site, você não tem um backend para rodar a IA automaticamente com o segredo do servidor. 
-                Ao colar sua chave de API Gemini grátis aqui, você habilita inteligência artificial real diretamente no seu navegador local!
+                Pode colar aqui a sua Chave de API Gemini grátis obtida em <strong>aistudio.google.com</strong> (deve começar com <code>AIzaSy</code>).
+                Esta chave será guardada de forma segura no seu navegador para ligar a inteligência artificial diretamente, seja no painel online ou ao correr o projeto localmente!
               </p>
             </div>
 
