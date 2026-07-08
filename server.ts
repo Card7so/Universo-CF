@@ -282,78 +282,116 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
     while (loopCount < maxLoops) {
       loopCount++;
 
-      // Request generation
-      let response;
-      try {
-        response = await withTimeout(
-          aiInstance.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents,
-            config: {
-              systemInstruction,
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  response: {
-                    type: Type.STRING,
-                    description: "A resposta explicativa ou relatório do que foi feito para o utilizador, em português de Portugal.",
-                  },
-                  action: {
+      // Request generation with model fallback and automatic retry mechanism
+      let response = null;
+      let lastError: any = null;
+      const modelsToTry = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+
+      for (const currentModel of modelsToTry) {
+        let attempts = 0;
+        const maxAttempts = 2;
+        while (attempts < maxAttempts) {
+          attempts++;
+          try {
+            console.log(`[Universo IA Agent] Enviando requisição com o modelo ${currentModel} (tentativa ${attempts}/${maxAttempts})...`);
+            response = await withTimeout(
+              aiInstance.models.generateContent({
+                model: currentModel,
+                contents,
+                config: {
+                  systemInstruction,
+                  responseMimeType: "application/json",
+                  responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                      type: { type: Type.STRING, description: "Tipo de ação: 'add_project', 'edit_project', 'delete_project', 'edit_settings' ou 'none'." },
-                      project: {
-                        type: Type.OBJECT,
-                        properties: {
-                          id: { type: Type.STRING },
-                          title: { type: Type.STRING },
-                          desc: { type: Type.STRING },
-                          type: { type: Type.STRING },
-                          publishedAt: { type: Type.STRING },
-                          allowDownload: { type: Type.BOOLEAN },
-                        },
+                      response: {
+                        type: Type.STRING,
+                        description: "A resposta explicativa ou relatório do que foi feito para o utilizador, em português de Portugal.",
                       },
-                      settings: {
+                      action: {
                         type: Type.OBJECT,
                         properties: {
-                          instagram: { type: Type.STRING },
-                          youtube: { type: Type.STRING },
-                          twitter: { type: Type.STRING },
-                          facebook: { type: Type.STRING },
-                          tiktok: { type: Type.STRING },
-                          contactEmail: { type: Type.STRING },
-                          contactPhone: { type: Type.STRING },
-                          maintenanceMode: { type: Type.BOOLEAN },
-                          allowPublicSubmissions: { type: Type.BOOLEAN },
-                        }
+                          type: { type: Type.STRING, description: "Tipo de ação: 'add_project', 'edit_project', 'delete_project', 'edit_settings' ou 'none'." },
+                          project: {
+                            type: Type.OBJECT,
+                            properties: {
+                              id: { type: Type.STRING },
+                              title: { type: Type.STRING },
+                              desc: { type: Type.STRING },
+                              type: { type: Type.STRING },
+                              publishedAt: { type: Type.STRING },
+                              allowDownload: { type: Type.BOOLEAN },
+                            },
+                          },
+                          settings: {
+                            type: Type.OBJECT,
+                            properties: {
+                              instagram: { type: Type.STRING },
+                              youtube: { type: Type.STRING },
+                              twitter: { type: Type.STRING },
+                              facebook: { type: Type.STRING },
+                              tiktok: { type: Type.STRING },
+                              contactEmail: { type: Type.STRING },
+                              contactPhone: { type: Type.STRING },
+                              maintenanceMode: { type: Type.BOOLEAN },
+                              allowPublicSubmissions: { type: Type.BOOLEAN },
+                            }
+                          }
+                        },
+                        required: ["type"],
+                      },
+                      workspaceAction: {
+                        type: Type.OBJECT,
+                        properties: {
+                          type: { type: Type.STRING, description: "Ação de ficheiro: 'read_file', 'write_file', 'patch_file', 'list_dir', 'delete_file', 'none'." },
+                          filePath: { type: Type.STRING },
+                          fileContent: { type: Type.STRING },
+                          targetContent: { type: Type.STRING },
+                          replacementContent: { type: Type.STRING },
+                          dirPath: { type: Type.STRING }
+                        },
+                        required: ["type"]
                       }
                     },
-                    required: ["type"],
+                    required: ["response", "action", "workspaceAction"],
                   },
-                  workspaceAction: {
-                    type: Type.OBJECT,
-                    properties: {
-                      type: { type: Type.STRING, description: "Ação de ficheiro: 'read_file', 'write_file', 'patch_file', 'list_dir', 'delete_file', 'none'." },
-                      filePath: { type: Type.STRING },
-                      fileContent: { type: Type.STRING },
-                      targetContent: { type: Type.STRING },
-                      replacementContent: { type: Type.STRING },
-                      dirPath: { type: Type.STRING }
-                    },
-                    required: ["type"]
-                  }
                 },
-                required: ["response", "action", "workspaceAction"],
-              },
-            },
-          }),
-          25000,
-          "O modelo Gemini demorou demasiado tempo a responder (Limite de 25s esgotado)."
-        );
-      } catch (genErr: any) {
-        console.error("Erro na geração do Gemini:", genErr);
-        const errMessage = genErr.message || String(genErr);
+              }),
+              25000,
+              `O modelo Gemini (${currentModel}) demorou demasiado tempo a responder.`
+            );
+            // Se funcionou, quebramos as tentativas
+            break;
+          } catch (err: any) {
+            lastError = err;
+            console.error(`Falha no modelo ${currentModel} (tentativa ${attempts}/${maxAttempts}):`, err.message || err);
+            const errMsg = String(err.message || err);
+            
+            // Se for erro de autenticação ou chave inválida definitiva, não adianta tentar outros modelos/tentativas
+            if (
+              errMsg.includes("API key") || 
+              errMsg.includes("API_KEY_INVALID") || 
+              errMsg.includes("Key not valid") || 
+              errMsg.includes("INVALID_ARGUMENT") ||
+              errMsg.includes("not found") ||
+              errMsg.includes("unauthorized")
+            ) {
+              break;
+            }
+            if (attempts < maxAttempts) {
+              console.log("[Universo IA Agent] Aguardando 1.5s antes de nova tentativa...");
+              await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+          }
+        }
+        if (response) {
+          break; // Sucesso, quebra a rotação de modelos
+        }
+      }
+
+      if (!response) {
+        console.error("Erro em todos os modelos Gemini disponíveis:", lastError);
+        const errMessage = lastError?.message || String(lastError);
         
         let userAdvice = "⚠️ **Erro ao comunicar com a API do Gemini**.\n\n";
         if (
