@@ -166,8 +166,8 @@ export default async function handler(req: any, res: any) {
     }
 
     let apiKeyToUse = process.env.GEMINI_API_KEY;
-    // Se o cliente forneceu uma chave válida, vamos dar preferência absoluta para ela, evitando usar a chave global/partilhada com limites de quota excedidos!
-    if (clientApiKey && clientApiKey.startsWith("AIzaSy")) {
+    // Se o cliente forneceu uma chave válida (e diferente da chave falsa de simulação antiga), usamos
+    if (clientApiKey && clientApiKey.startsWith("AIzaSy") && clientApiKey !== "AIzaSyCgbJcoMVmJwk-U95FbUI1hqjd7sPiLJwk") {
       apiKeyToUse = clientApiKey;
     }
 
@@ -301,7 +301,7 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
       // Request generation with model fallback and automatic retry mechanism
       let response = null;
       let lastError: any = null;
-      const modelsToTry = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+      const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
 
       for (const currentModel of modelsToTry) {
         let attempts = 0;
@@ -388,8 +388,6 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
               errMsg.includes("API key") || 
               errMsg.includes("API_KEY_INVALID") || 
               errMsg.includes("Key not valid") || 
-              errMsg.includes("INVALID_ARGUMENT") ||
-              errMsg.includes("not found") ||
               errMsg.includes("unauthorized")
             ) {
               break;
@@ -414,8 +412,6 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
           errMessage.includes("API key") || 
           errMessage.includes("API_KEY_INVALID") || 
           errMessage.includes("Key not valid") || 
-          errMessage.includes("INVALID_ARGUMENT") ||
-          errMessage.includes("not found") ||
           errMessage.includes("unauthorized")
         ) {
           userAdvice += "O erro indica que a **sua Chave de API do Gemini (GEMINI_API_KEY) é inválida, não foi encontrada ou expirou**.\n\n" +

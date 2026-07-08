@@ -185,9 +185,10 @@ export default function UniversoIAChat({
   // Load saved chat history and Gemini key on mount
   useEffect(() => {
     let key = localStorage.getItem("universo_cf_gemini_key") || "";
-    if (!key) {
-      key = "AIzaSyCgbJcoMVmJwk-U95FbUI1hqjd7sPiLJwk";
-      localStorage.setItem("universo_cf_gemini_key", key);
+    // Se a chave for a chave falsa antiga, limpamos para priorizar a chave do servidor
+    if (key === "AIzaSyCgbJcoMVmJwk-U95FbUI1hqjd7sPiLJwk") {
+      key = "";
+      localStorage.removeItem("universo_cf_gemini_key");
     }
     setGeminiKey(key);
 
