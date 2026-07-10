@@ -573,7 +573,8 @@ Responda rigorosamente no formato JSON abaixo:
             history: messages.slice(-10).map(m => ({ role: m.role, text: m.text })),
             projects: activeProjects,
             comments: commentsData,
-            clientApiKey: geminiKey
+            clientApiKey: geminiKey,
+            isAdmin: mode === "admin"
           })
         });
 

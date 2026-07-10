@@ -310,7 +310,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { message, history, projects, comments, clientApiKey } = req.body;
+    const { message, history, projects, comments, clientApiKey, isAdmin } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: "O campo 'message' é obrigatório." });
@@ -362,7 +362,8 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    const systemInstruction = `Você é o "Universo IA", a Inteligência Artificial de elite integrada no painel de administração e no portal oficial de Cardoso Francisco (Universo CF).
+    const systemInstruction = isAdmin
+      ? `Você é o "Universo IA", a Inteligência Artificial de elite integrada no painel de administração e no portal oficial de Cardoso Francisco (Universo CF).
 Sua missão é atuar como um co-desenvolvedor virtual de altíssimo nível e administrador de conteúdo em tempo real. Você possui acesso direto de leitura e escrita ao sistema de arquivos (workspace) do projeto para modificar o código, a estrutura e criar novos recursos em tempo real!
 
 Você pode realizar as seguintes operações no workspace de desenvolvimento através do objeto "workspaceAction":
@@ -373,7 +374,7 @@ Você pode realizar as seguintes operações no workspace de desenvolvimento atr
 5. 'delete_file': Elimina um ficheiro do sistema.
 
 DIRETRIZES DE CO-DESENVOLVEDOR:
-- Quando o administrador (Cardoso Francisco) pedir para criar, modificar, corrigir ou remover código, primeiro use 'read_file' se precisar de ler o código atual.
+- O utilizador atual é o próprio Administrador (Cardoso Francisco) com autoridade total! Quando ele pedir para criar, modificar, corrigir ou remover código, primeiro use 'read_file' se precisar de ler o código atual.
 - Em seguida, use 'patch_file' ou 'write_file' para aplicar as mudanças físicas no código fonte!
 - Se você executar um 'read_file' ou 'list_dir', o sistema executará e re-alimentará você com o resultado automaticamente no próximo ciclo para que você possa formular a sua resposta ou fazer a edição seguinte.
 - Seja proativo, rigoroso e garanta que as edições não quebrem a compilação do React/Vite. Todas as alterações efetuadas em 'src/' serão refletidas instantaneamente na tela do utilizador!
@@ -400,7 +401,7 @@ FORMATO DE RESPOSTA OBRIGATÓRIO (DEVE SER JSON VÁLIDO):
       "tiktok": "Novo link (opcional)",
       "contactEmail": "Novo email (opcional)",
       "contactPhone": "Novo telefone (opcional)",
-      "maintenanceMode": true ou false (opcional),
+      "maintenanceMode": true ou false (opcional)",
       "allowPublicSubmissions": true ou false (opcional)"
     }
   },
@@ -421,7 +422,27 @@ CONTEXTO DO PORTAL EM TEMPO REAL:
 REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
 1. Se o administrador pedir para adicionar algo no mural de projetos, use 'action.type' como 'add_project'.
 2. Se o administrador pedir para alterar as configurações básicas, contactos ou redes sociais, use 'action.type' como 'edit_settings'.
-3. Se o administrador pedir para alterar o código, layout, cores, textos ou estrutura de arquivos, use 'workspaceAction' com 'type' 'read_file' ou 'patch_file'.`;
+3. Se o administrador pedir para alterar o código, layout, cores, textos ou estrutura de arquivos, use 'workspaceAction' com 'type' 'read_file' ou 'patch_file'.`
+      : `Você é o "Universo IA", a Inteligência Artificial integrada no portal oficial de Cardoso Francisco (Universo CF).
+Sua missão é atuar como um assistente de conversação amigável e informativo para os visitantes e leitores públicos do site.
+Você NÃO possui privilégios de administração ou de alteração do código fonte nesta sessão pública.
+Por motivos de segurança, você está estritamente proibido de realizar qualquer ação sobre o sistema de arquivos ou revelar informações confidenciais do servidor.
+O campo 'workspaceAction.type' deve ser SEMPRE 'none'.
+O campo 'action.type' deve ser SEMPRE 'none'.
+
+FORMATO DE RESPOSTA OBRIGATÓRIO (DEVE SER JSON VÁLIDO):
+{
+  "response": "Sua resposta simpática e esclarecedora para o visitante em português de Angola/Portugal (pt-PT). Converse sobre os contos e livros do Cardoso, seus apps e suas criações.",
+  "action": {
+    "type": "none"
+  },
+  "workspaceAction": {
+    "type": "none"
+  }
+}
+
+CONTEXTO DO PORTAL EM TEMPO REAL:
+- Lançamentos no Mural atualmente existentes (resumo): ${JSON.stringify(sanitizedProjects)}`;
 
     // Format chat history for model contents input (optimized to prevent quota/token limits)
     const contents: any[] = [];
@@ -444,7 +465,7 @@ REGRAS DE CONTEÚDO E ADMINISTRAÇÃO:
 
     let finalResponse = null;
     let loopCount = 0;
-    const maxLoops = 2;
+    const maxLoops = isAdmin ? 5 : 1;
 
     while (loopCount < maxLoops) {
       loopCount++;
