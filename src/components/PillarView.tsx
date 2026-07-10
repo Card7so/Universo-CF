@@ -15,7 +15,10 @@ import {
   MessageSquare, 
   Send, 
   User,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  AlertTriangle,
+  X
 } from "lucide-react";
 import { CustomProject } from "../types";
 // @ts-ignore
@@ -166,7 +169,25 @@ export default function PillarView({ category, onBack }: PillarViewProps) {
       return;
     }
 
-    const filename = project.fileName || `${project.title.toLowerCase().replace(/\s+/g, "_")}_universo_cf.zip`;
+    let filename = project.fileName || `${project.title.toLowerCase().replace(/\s+/g, "_")}_universo_cf.zip`;
+    const lowerFn = filename.toLowerCase();
+
+    // Sanitize filename: if it is generic (e.g. "base.apk", "app.apk", "file.apk") or if it's an APK,
+    // customize it beautifully based on the project's title to avoid browser collision warnings ("Do you want to download again?") and look high-trust.
+    const isGeneric = lowerFn === "base.apk" || lowerFn === "app.apk" || lowerFn === "file.apk" || lowerFn === "universo.apk" || !filename;
+    
+    if (isGeneric || lowerFn.endsWith(".apk")) {
+      const cleanTitle = project.title
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove accents/diacritics
+        .replace(/[^a-zA-Z0-9]/g, "_")   // keep alphanumeric and replace rest with underscores
+        .replace(/_+/g, "_")             // remove repeated underscores
+        .replace(/^_+|_+$/g, "");        // trim leading/trailing underscores
+      
+      const extension = lowerFn.endsWith(".apk") ? "apk" : (lowerFn.split(".").pop() || "zip");
+      filename = `${cleanTitle || "App"}_Universo_CF.${extension}`;
+    }
+
     const element = document.createElement("a");
     
     if (project.fileData) {
@@ -564,6 +585,7 @@ export default function PillarView({ category, onBack }: PillarViewProps) {
           </div>
         </div>
       )}
+
     </motion.div>
   );
 }

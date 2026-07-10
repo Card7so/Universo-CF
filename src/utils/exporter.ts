@@ -1009,9 +1009,29 @@ function postComment(projectId) {
 // File download from Base64 decoder
 function downloadEmbeddedFile(projectId, filename, base64Data) {
   try {
+    const proj = projects.find(p => p.id === projectId);
+    const title = proj ? proj.title : '';
+    
+    let finalFilename = filename || \`download_universo_cf_\${projectId}\`;
+    const lowerFn = finalFilename.toLowerCase();
+
+    const isGeneric = lowerFn === "base.apk" || lowerFn === "app.apk" || lowerFn === "file.apk" || lowerFn === "universo.apk" || !finalFilename;
+    
+    if (isGeneric || lowerFn.endsWith(".apk")) {
+      const cleanTitle = (title || "App")
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "") // remove accents
+        .replace(/[^a-zA-Z0-9]/g, "_")   // replace non-alphanumeric with underscore
+        .replace(/_+/g, "_")             // collapse multiple underscores
+        .replace(/^_+|_+$/g, "");        // trim leading/trailing underscores
+      
+      const extension = lowerFn.endsWith(".apk") ? "apk" : (lowerFn.split(".").pop() || "zip");
+      finalFilename = \`\${cleanTitle}_Universo_CF.\${extension}\`;
+    }
+
     const link = document.createElement("a");
     link.href = base64Data;
-    link.download = filename || \`download_universo_cf_\${projectId}\`;
+    link.download = finalFilename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

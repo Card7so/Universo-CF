@@ -2211,19 +2211,29 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
             {/* Options Selection Menu Overlay */}
             {optionsProject && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOptionsProject(null);
+                }}
+              >
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="w-full max-w-md bg-[#0a0a14] border border-white/10 rounded-3xl p-6 shadow-2xl relative space-y-6"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex justify-between items-center pb-3 border-b border-white/5">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
                       Opções do Lançamento
                     </h4>
                     <button
-                      onClick={() => setOptionsProject(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOptionsProject(null);
+                      }}
                       className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer focus:outline-none"
                     >
                       <X className="w-4 h-4" />
@@ -2258,7 +2268,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
                   <div className="grid grid-cols-1 gap-2.5">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleOptionSelect(optionsProject, "texto");
                         setOptionsProject(null);
                       }}
@@ -2269,7 +2280,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     </button>
 
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleOptionSelect(optionsProject, "ver_capa");
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-sky-500/10 hover:text-sky-450 border border-white/5 hover:border-sky-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
@@ -2279,7 +2291,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     </button>
 
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleOptionSelect(optionsProject, "editar_capa");
                         setOptionsProject(null);
                       }}
@@ -2290,7 +2303,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     </button>
 
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleOptionSelect(optionsProject, "reenviar_ficheiro");
                         setOptionsProject(null);
                       }}
@@ -2303,7 +2317,10 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
                   <div className="pt-2">
                     <button
-                      onClick={() => setOptionsProject(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOptionsProject(null);
+                      }}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer focus:outline-none"
                     >
                       Fechar Opções
@@ -2315,10 +2332,22 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
             {/* Lightbox Cover Preview */}
             {viewingCoverUrl && (
-              <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
-                <div className="relative max-w-lg w-full flex flex-col items-center">
+              <div 
+                className="fixed inset-0 z-55 flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewingCoverUrl(null);
+                }}
+              >
+                <div 
+                  className="relative max-w-lg w-full flex flex-col items-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
-                    onClick={() => setViewingCoverUrl(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingCoverUrl(null);
+                    }}
                     className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/25 text-white rounded-full transition-all cursor-pointer focus:outline-none"
                     title="Fechar"
                   >
