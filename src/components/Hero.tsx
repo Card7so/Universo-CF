@@ -16,9 +16,15 @@ export default function Hero({ onExplore }: HeroProps) {
     const stored = localStorage.getItem("universo_cf_published_projects");
     if (stored) {
       try {
-        setPublishedProjects(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setPublishedProjects(parsed);
+        } else {
+          setPublishedProjects([]);
+        }
       } catch (e) {
         console.error("Error parsing projects in Hero", e);
+        setPublishedProjects([]);
       }
     } else {
       setPublishedProjects([]);

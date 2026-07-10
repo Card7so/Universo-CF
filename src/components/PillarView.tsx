@@ -54,34 +54,39 @@ export default function PillarView({ category, onBack }: PillarViewProps) {
       const stored = localStorage.getItem("universo_cf_published_projects");
       if (stored) {
         try {
-          const parsed: CustomProject[] = JSON.parse(stored);
-          const filtered = parsed.filter((p) => p.type === category);
-          
-          const hydrated = await Promise.all(
-            filtered.map(async (p) => {
-              let fileData = p.fileData;
-              let coverImageData = p.coverImageData;
-              
-              if (fileData === "indexeddb") {
-                const storedFile = await getLargeFile(`file_${p.id}`);
-                if (storedFile) fileData = storedFile;
-              }
-              if (coverImageData === "indexeddb") {
-                const storedCover = await getLargeFile(`cover_${p.id}`);
-                if (storedCover) coverImageData = storedCover;
-              }
-              
-              return {
-                ...p,
-                fileData,
-                coverImageData,
-              };
-            })
-          );
-          
-          setProjects(hydrated);
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((p) => p && p.type === category);
+            
+            const hydrated = await Promise.all(
+              filtered.map(async (p) => {
+                let fileData = p.fileData;
+                let coverImageData = p.coverImageData;
+                
+                if (fileData === "indexeddb") {
+                  const storedFile = await getLargeFile(`file_${p.id}`);
+                  if (storedFile) fileData = storedFile;
+                }
+                if (coverImageData === "indexeddb") {
+                  const storedCover = await getLargeFile(`cover_${p.id}`);
+                  if (storedCover) coverImageData = storedCover;
+                }
+                
+                return {
+                  ...p,
+                  fileData,
+                  coverImageData,
+                };
+              })
+            );
+            
+            setProjects(hydrated);
+          } else {
+            setProjects([]);
+          }
         } catch (e) {
           console.error("Error loading projects in PillarView", e);
+          setProjects([]);
         }
       } else {
         setProjects([]);

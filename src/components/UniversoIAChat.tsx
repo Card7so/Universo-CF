@@ -63,7 +63,12 @@ export default function UniversoIAChat({
       const stored = localStorage.getItem("universo_cf_published_projects");
       if (stored) {
         try {
-          setActiveProjects(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setActiveProjects(parsed);
+          } else {
+            setActiveProjects([]);
+          }
         } catch (e) {
           setActiveProjects([]);
         }
@@ -76,7 +81,12 @@ export default function UniversoIAChat({
       const stored = localStorage.getItem("universo_cf_published_projects");
       if (stored) {
         try {
-          setActiveProjects(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setActiveProjects(parsed);
+          } else {
+            setActiveProjects([]);
+          }
         } catch (e) {
           setActiveProjects([]);
         }

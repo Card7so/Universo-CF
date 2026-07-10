@@ -611,6 +611,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
   // Import JSON to restore projects
   const handleImportBackup = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     try {
       const parsed = JSON.parse(importJson);
       if (Array.isArray(parsed)) {

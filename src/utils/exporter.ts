@@ -577,7 +577,9 @@ function initializeDatabase() {
       // Create projects list merging localStorage values (gives preference to newer custom browser ones)
       const mergedMap = new Map();
       embeddedProjects.forEach(p => mergedMap.set(p.id, p));
-      parsed.forEach(p => mergedMap.set(p.id, p));
+      if (Array.isArray(parsed)) {
+        parsed.forEach(p => p && mergedMap.set(p.id, p));
+      }
       projects = Array.from(mergedMap.values());
     } catch(e) {
       console.error("Erro ao carregar projetos do localStorage", e);
@@ -1072,7 +1074,12 @@ function handleContactSubmit(e) {
   const stored = localStorage.getItem('universo_cf_contact_submissions') || '[]';
   let submissions = [];
   try {
-    submissions = JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed)) {
+      submissions = parsed;
+    } else {
+      submissions = [];
+    }
   } catch(e) {
     submissions = [];
   }
