@@ -8,6 +8,9 @@ interface FooterProps {
 export default function Footer({ onLinkClick }: FooterProps) {
   const currentYear = 2026;
 
+  const [privacyLabel, setPrivacyLabel] = useState("Privacidade");
+  const [termsLabel, setTermsLabel] = useState("Termos");
+
   const [socials, setSocials] = useState({
     instagram: "",
     youtube: "",
@@ -33,6 +36,8 @@ export default function Footer({ onLinkClick }: FooterProps) {
       email: localStorage.getItem("universo_contact_email") || "cardosofrancisco17g@gmail.com",
       phone: localStorage.getItem("universo_contact_phone") || "975 221 805",
     });
+    setPrivacyLabel(localStorage.getItem("universo_footer_privacy_label") || "Privacidade");
+    setTermsLabel(localStorage.getItem("universo_footer_terms_label") || "Termos");
   };
 
   useEffect(() => {
@@ -246,13 +251,13 @@ export default function Footer({ onLinkClick }: FooterProps) {
               onClick={() => onLinkClick("privacidade")}
               className="hover:text-sky-400 transition-colors cursor-pointer text-left focus:outline-none"
             >
-              Privacidade
+              {privacyLabel}
             </button>
             <button
               onClick={() => onLinkClick("termos")}
               className="hover:text-sky-400 transition-colors cursor-pointer text-left focus:outline-none"
             >
-              Termos
+              {termsLabel}
             </button>
           </div>
 

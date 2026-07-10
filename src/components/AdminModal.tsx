@@ -557,6 +557,12 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       if (s.allowPublicSubmissions !== undefined) {
         setAllowPublicSubmissions(!!s.allowPublicSubmissions);
       }
+      if (s.footerPrivacyLabel !== undefined) {
+        localStorage.setItem("universo_footer_privacy_label", s.footerPrivacyLabel);
+      }
+      if (s.footerTermsLabel !== undefined) {
+        localStorage.setItem("universo_footer_terms_label", s.footerTermsLabel);
+      }
       
       window.dispatchEvent(new Event("universo-social-updated"));
       setSuccessMsg("Universo IA: Configurações e estrutura do site atualizadas com sucesso!");
