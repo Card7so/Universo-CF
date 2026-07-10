@@ -187,29 +187,33 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       const stored = localStorage.getItem("universo_cf_published_projects");
       if (stored) {
         try {
-          const parsed: CustomProject[] = JSON.parse(stored);
-          const hydrated = await Promise.all(
-            parsed.map(async (p) => {
-              let fileData = p.fileData;
-              let coverImageData = p.coverImageData;
-              
-              if (fileData === "indexeddb") {
-                const storedFile = await getLargeFile(`file_${p.id}`);
-                if (storedFile) fileData = storedFile;
-              }
-              if (coverImageData === "indexeddb") {
-                const storedCover = await getLargeFile(`cover_${p.id}`);
-                if (storedCover) coverImageData = storedCover;
-              }
-              
-              return {
-                ...p,
-                fileData,
-                coverImageData,
-              };
-            })
-          );
-          setPublishedProjects(hydrated);
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            const hydrated = await Promise.all(
+              parsed.map(async (p) => {
+                let fileData = p.fileData;
+                let coverImageData = p.coverImageData;
+                
+                if (fileData === "indexeddb") {
+                  const storedFile = await getLargeFile(`file_${p.id}`);
+                  if (storedFile) fileData = storedFile;
+                }
+                if (coverImageData === "indexeddb") {
+                  const storedCover = await getLargeFile(`cover_${p.id}`);
+                  if (storedCover) coverImageData = storedCover;
+                }
+                
+                return {
+                  ...p,
+                  fileData,
+                  coverImageData,
+                };
+              })
+            );
+            setPublishedProjects(hydrated);
+          } else {
+            setPublishedProjects([]);
+          }
         } catch (e) {
           console.error("Erro ao carregar e hidratar projetos", e);
         }
@@ -225,8 +229,9 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     // Verify using Cardoso Francisco's special access code
-    if (accessCode.trim() === adminPassword) {
+    if ((accessCode || "").trim() === adminPassword) {
       setIsAuthenticated(true);
       setError("");
       setActiveTab("Painel");
@@ -236,6 +241,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
   };
 
   const dehydrateProjects = (list: CustomProject[]): CustomProject[] => {
+    if (!list || !Array.isArray(list)) return [];
     return list.map((p) => ({
       ...p,
       fileData: p.fileData ? "indexeddb" : undefined,
@@ -245,7 +251,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const handlePublishProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectTitle.trim()) {
+    e.stopPropagation();
+    if (!(projectTitle || "").trim()) {
       setError("Por favor, preencha o título do seu projeto.");
       return;
     }
@@ -283,9 +290,9 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
           return {
             ...p,
             type: projectType,
-            title: projectTitle.trim(),
-            desc: projectDesc.trim() || undefined,
-            link: projectLink.trim() || "#",
+            title: (projectTitle || "").trim(),
+            desc: (projectDesc || "").trim() || undefined,
+            link: (projectLink || "").trim() || "#",
             fileName: mainFileName || undefined,
             fileSize: mainFileSize || undefined,
             fileData: hasFileData ? "indexeddb" : undefined,
@@ -301,13 +308,15 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       const newProject: CustomProject = {
         id: targetId,
         type: projectType,
-        title: projectTitle.trim(),
-        desc: projectDesc.trim() || undefined,
-        link: projectLink.trim() || "#",
+        title: (projectTitle || "").trim(),
+        desc: (projectDesc || "").trim() || undefined,
+        link: (projectLink || "").trim() || "#",
         publishedAt: new Date().toLocaleDateString("pt-PT", {
           year: "numeric",
           month: "long",
           day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
         }),
         fileName: mainFileName || undefined,
         fileSize: mainFileSize || undefined,
@@ -690,13 +699,14 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const handleSaveSocialLinks = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("universo_social_instagram", instagram.trim());
-    localStorage.setItem("universo_social_youtube", youtube.trim());
-    localStorage.setItem("universo_social_twitter", twitter.trim());
-    localStorage.setItem("universo_social_facebook", facebook.trim());
-    localStorage.setItem("universo_social_tiktok", tiktok.trim());
-    localStorage.setItem("universo_contact_email", contactEmail.trim());
-    localStorage.setItem("universo_contact_phone", contactPhone.trim());
+    e.stopPropagation();
+    localStorage.setItem("universo_social_instagram", (instagram || "").trim());
+    localStorage.setItem("universo_social_youtube", (youtube || "").trim());
+    localStorage.setItem("universo_social_twitter", (twitter || "").trim());
+    localStorage.setItem("universo_social_facebook", (facebook || "").trim());
+    localStorage.setItem("universo_social_tiktok", (tiktok || "").trim());
+    localStorage.setItem("universo_contact_email", (contactEmail || "").trim());
+    localStorage.setItem("universo_contact_phone", (contactPhone || "").trim());
     
     window.dispatchEvent(new Event("universo-social-updated"));
     setSuccessMsg("Configurações e redes sociais guardadas com sucesso!");
@@ -705,11 +715,12 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (currentPassword !== adminPassword) {
       setError("A palavra-passe atual está incorreta.");
       return;
     }
-    if (!newPassword.trim()) {
+    if (!(newPassword || "").trim()) {
       setError("A nova palavra-passe não pode ser vazia.");
       return;
     }
@@ -718,8 +729,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       return;
     }
 
-    localStorage.setItem("universo_cf_admin_password", newPassword.trim());
-    setAdminPassword(newPassword.trim());
+    localStorage.setItem("universo_cf_admin_password", (newPassword || "").trim());
+    setAdminPassword((newPassword || "").trim());
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
