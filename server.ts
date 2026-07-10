@@ -457,9 +457,11 @@ CONTEXTO DO PORTAL EM TEMPO REAL:
       // Request generation with model fallback and automatic retry mechanism
       let response = null;
       let lastError: any = null;
+      let keyError = false;
       const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
 
       for (const currentModel of modelsToTry) {
+        if (keyError) break;
         let attempts = 0;
         const maxAttempts = 2;
         while (attempts < maxAttempts) {
@@ -536,18 +538,21 @@ CONTEXTO DO PORTAL EM TEMPO REAL:
             break;
           } catch (err: any) {
             lastError = err;
-            console.error(`Falha no modelo ${currentModel} (tentativa ${attempts}/${maxAttempts}):`, err.message || err);
             const errMsg = String(err.message || err);
-            
-            // Se for erro de autenticação ou chave inválida definitiva, não adianta tentar outros modelos/tentativas
-            if (
+            const isLeaked = errMsg.toLowerCase().includes("leaked") || errMsg.toLowerCase().includes("leak");
+            const isInvalidKey = isLeaked ||
               errMsg.includes("API key") || 
               errMsg.includes("API_KEY_INVALID") || 
               errMsg.includes("Key not valid") || 
-              errMsg.includes("unauthorized")
-            ) {
+              errMsg.includes("unauthorized");
+
+            if (isInvalidKey) {
+              console.warn(`[Universo IA] Chave de API do Gemini inválida ou revogada:`, errMsg);
+              keyError = true;
               break;
             }
+
+            console.error(`Falha no modelo ${currentModel} (tentativa ${attempts}/${maxAttempts}):`, err.message || err);
             if (attempts < maxAttempts) {
               console.log("[Universo IA Agent] Aguardando 1.5s antes de nova tentativa...");
               await new Promise(resolve => setTimeout(resolve, 1500));
@@ -560,13 +565,21 @@ CONTEXTO DO PORTAL EM TEMPO REAL:
       }
 
       if (!response) {
-        console.error("Erro em todos os modelos Gemini disponíveis:", lastError);
+        const errStr = String(lastError?.message || lastError || "");
+        const isLeaked = errStr.toLowerCase().includes("leaked") || errStr.toLowerCase().includes("leak") || errStr.toLowerCase().includes("divulgada");
+        
+        console.warn("[Universo IA] Usando fallback local devido a indisponibilidade ou erro da API Gemini:", errStr);
         
         // Use the intelligent local fallback to keep the conversation going smoothly
         const fallback = generateLocalFallbackResponse(message, true, projects || []);
         
-        // Append a very subtle, friendly compatibility note at the bottom
-        const subtleNote = "\n\n---\n*ℹ️ (Nota de compatibilidade: O Universo IA está a usar o assistente de inteligência local inteligente devido a limites temporários de ligação à API externa).*";
+        let subtleNote = "\n\n---\n*ℹ️ (Nota de compatibilidade: O Universo IA está a usar o assistente de inteligência local inteligente devido a limites temporários de ligação à API externa).*";
+        if (isLeaked) {
+          subtleNote = "\n\n---\n*⚠️ (Nota: A Chave de API Gemini configurada no servidor foi reportada como divulgada/leaked e revogada pela Google. O Universo IA está a funcionar no modo de assistente inteligente local. Peça ao administrador do site para atualizar a GEMINI_API_KEY no painel de segredos).*";
+        } else if (errStr.includes("API key") || errStr.includes("API_KEY_INVALID")) {
+          subtleNote = "\n\n---\n*⚠️ (Nota: A Chave de API Gemini configurada no servidor é inválida. O Universo IA está a funcionar no modo de assistente inteligente local. Peça ao administrador do site para atualizar a GEMINI_API_KEY no painel de segredos).*";
+        }
+        
         const finalResponse = fallback.response + subtleNote;
 
         return res.status(200).json({
