@@ -242,11 +242,18 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const dehydrateProjects = (list: CustomProject[]): CustomProject[] => {
     if (!list || !Array.isArray(list)) return [];
-    return list.map((p) => ({
-      ...p,
-      fileData: p.fileData ? "indexeddb" : undefined,
-      coverImageData: p.coverImageData ? "indexeddb" : undefined,
-    }));
+    return list.map((p) => {
+      const keepCoverAsIs = p.coverImageData && (
+        p.coverImageData.startsWith("http://") || 
+        p.coverImageData.startsWith("https://") || 
+        (p.coverImageData.startsWith("data:") && p.coverImageData.length < 400000)
+      );
+      return {
+        ...p,
+        fileData: p.fileData ? "indexeddb" : undefined,
+        coverImageData: keepCoverAsIs ? p.coverImageData : (p.coverImageData ? "indexeddb" : undefined),
+      };
+    });
   };
 
   const handlePublishProject = async (e: React.FormEvent) => {
@@ -273,7 +280,10 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       }
     }
     
-    if (hasCoverData && coverImageData !== "indexeddb") {
+    const isPublicUrl = coverImageData && (coverImageData.startsWith("http://") || coverImageData.startsWith("https://"));
+    const isSmallBase64 = coverImageData && coverImageData.startsWith("data:") && coverImageData.length < 400000;
+
+    if (hasCoverData && coverImageData !== "indexeddb" && !isPublicUrl && !isSmallBase64) {
       try {
         await saveLargeFile(`cover_${targetId}`, coverImageData);
       } catch (err) {
@@ -297,7 +307,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
             fileSize: mainFileSize || undefined,
             fileData: hasFileData ? "indexeddb" : undefined,
             coverImageName: coverImageName || undefined,
-            coverImageData: hasCoverData ? "indexeddb" : undefined,
+            coverImageData: hasCoverData ? coverImageData : undefined,
             allowDownload: allowDownload,
           };
         }
@@ -322,7 +332,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
         fileSize: mainFileSize || undefined,
         fileData: hasFileData ? "indexeddb" : undefined,
         coverImageName: coverImageName || undefined,
-        coverImageData: hasCoverData ? "indexeddb" : undefined,
+        coverImageData: hasCoverData ? coverImageData : undefined,
         allowDownload: allowDownload,
       };
       updated = [newProject, ...publishedProjects];
@@ -1116,33 +1126,61 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">
                               Imagem de capa (opcional)
                             </label>
-                            <div className="flex items-center gap-3">
-                              <label className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-white cursor-pointer transition-all hover:border-white/20 select-none">
-                                Selecionar Capa
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-3">
+                                <label className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-white cursor-pointer transition-all hover:border-white/20 select-none">
+                                  Selecionar Ficheiro
+                                  <input
+                                    ref={coverInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        setCoverImageName(file.name);
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          setCoverImageData(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      } else {
+                                        setCoverImageName(null);
+                                        setCoverImageData(null);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                <span className="text-xs text-slate-400 font-mono truncate">
+                                  {coverImageName || "Nenhum ficheiro selecionado"}
+                                </span>
+                              </div>
+
+                              <div className="relative space-y-1">
+                                <span className="text-[10px] text-slate-500 block font-mono">
+                                  Ou cole o Link/URL direto da imagem de capa (Recomendado para visitantes):
+                                </span>
                                 <input
-                                  ref={coverInputRef}
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
+                                  type="url"
+                                  placeholder="https://exemplo.com/imagem.jpg"
+                                  value={coverImageData && !coverImageData.startsWith("data:") && coverImageData !== "indexeddb" ? coverImageData : ""}
                                   onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      setCoverImageName(file.name);
-                                      const reader = new FileReader();
-                                      reader.onloadend = () => {
-                                        setCoverImageData(reader.result as string);
-                                      };
-                                      reader.readAsDataURL(file);
+                                    const val = e.target.value.trim();
+                                    if (val) {
+                                      setCoverImageData(val);
+                                      setCoverImageName("Link de imagem externa");
                                     } else {
-                                      setCoverImageName(null);
                                       setCoverImageData(null);
+                                      setCoverImageName(null);
                                     }
                                   }}
+                                  className="w-full bg-[#020205] border border-white/10 focus:border-amber-500/50 rounded-xl py-3 px-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all font-mono"
                                 />
-                              </label>
-                              <span className="text-xs text-slate-400 font-mono truncate">
-                                {coverImageName || "Nenhum ficheiro selecionado"}
-                              </span>
+                              </div>
+
+                              <p className="text-[10px] leading-relaxed text-slate-500">
+                                💡 <strong className="text-slate-400">Dica:</strong> Se selecionar um ficheiro de imagem local, ele será salvo localmente no seu navegador. Para garantir que todos os visitantes vejam a imagem no site publicado, cole um link direto de imagem externa (ex: Imgur, PostImages, Google Drive público, ou Unsplash). Ficheiros pequenos abaixo de 300KB também são salvos diretamente para os visitantes verem.
+                              </p>
                             </div>
                           </div>
 
@@ -1294,7 +1332,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                     {/* App Image view inside Admin list */}
                                     <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0 flex items-center justify-center">
                                       <img
-                                        src={proj.coverImageData || (
+                                        src={proj.coverImageData && proj.coverImageData !== "indexeddb" ? proj.coverImageData : (
                                           proj.title.toLowerCase().includes("minsa") || 
                                           proj.title.toLowerCase().includes("prep") || 
                                           proj.title.toLowerCase().includes("cf")
@@ -2255,7 +2293,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                   <div className="flex gap-4 items-center p-3.5 rounded-2xl bg-white/2 border border-white/5">
                     <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0">
                       <img
-                        src={optionsProject.coverImageData || (
+                        src={optionsProject.coverImageData && optionsProject.coverImageData !== "indexeddb" ? optionsProject.coverImageData : (
                           optionsProject.title.toLowerCase().includes("minsa") || 
                           optionsProject.title.toLowerCase().includes("prep") || 
                           optionsProject.title.toLowerCase().includes("cf")

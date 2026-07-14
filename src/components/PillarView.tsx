@@ -334,7 +334,7 @@ export default function PillarView({ category, onBack }: PillarViewProps) {
                     <div className="w-full md:w-44 flex-shrink-0">
                       <div className="w-full aspect-video md:aspect-square rounded-2xl overflow-hidden border border-white/10 relative shadow-inner bg-black/40">
                         <img
-                          src={project.coverImageData || (
+                          src={project.coverImageData && project.coverImageData !== "indexeddb" ? project.coverImageData : (
                             project.title.toLowerCase().includes("minsa") || 
                             project.title.toLowerCase().includes("prep") || 
                             project.title.toLowerCase().includes("cf")

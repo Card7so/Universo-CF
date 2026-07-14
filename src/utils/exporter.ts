@@ -799,7 +799,7 @@ function renderProjects() {
     const ratingScore = localRatings[proj.id] || 0;
     
     // Default fallback image
-    const coverUrl = proj.coverImageData || (
+    const coverUrl = proj.coverImageData && proj.coverImageData !== "indexeddb" ? proj.coverImageData : (
       proj.title.toLowerCase().includes("minsa") || proj.title.toLowerCase().includes("prep") || proj.title.toLowerCase().includes("cf")
         ? fallbackLogo
         : currentCategory === "books" 
