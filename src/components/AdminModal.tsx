@@ -81,6 +81,25 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
   
   const [optionsProject, setOptionsProject] = useState<CustomProject | null>(null);
   const [viewingCoverUrl, setViewingCoverUrl] = useState<string | null>(null);
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
+  
+  const recentlyClosedSubModalRef = useRef(false);
+
+  const closeOptionsProject = () => {
+    recentlyClosedSubModalRef.current = true;
+    setOptionsProject(null);
+    setTimeout(() => {
+      recentlyClosedSubModalRef.current = false;
+    }, 300);
+  };
+
+  const closeViewingCoverUrl = () => {
+    recentlyClosedSubModalRef.current = true;
+    setViewingCoverUrl(null);
+    setTimeout(() => {
+      recentlyClosedSubModalRef.current = false;
+    }, 300);
+  };
   
   // List of projects published
   const [publishedProjects, setPublishedProjects] = useState<CustomProject[]>([]);
@@ -404,11 +423,18 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
     }, 150);
   };
 
-  const handleOptionSelect = async (proj: CustomProject, mode: "texto" | "ver_capa" | "editar_capa" | "reenviar_ficheiro") => {
+  const handleOptionSelect = async (proj: CustomProject | null, mode: "texto" | "ver_capa" | "editar_capa" | "reenviar_ficheiro") => {
+    if (!proj) return;
+    
     if (mode === "ver_capa") {
       let coverData = proj.coverImageData || null;
       if (coverData === "indexeddb") {
-        coverData = await getLargeFile(`cover_${proj.id}`);
+        try {
+          coverData = await getLargeFile(`cover_${proj.id}`);
+        } catch (dbErr) {
+          console.error("Erro ao obter capa do IndexedDB:", dbErr);
+          coverData = null;
+        }
       }
       if (coverData) {
         setViewingCoverUrl(coverData);
@@ -438,7 +464,12 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
     
     let fileData = proj.fileData || null;
     if (fileData === "indexeddb") {
-      fileData = await getLargeFile(`file_${proj.id}`);
+      try {
+        fileData = await getLargeFile(`file_${proj.id}`);
+      } catch (dbErr) {
+        console.error("Erro ao obter ficheiro do IndexedDB:", dbErr);
+        fileData = null;
+      }
     }
     setMainFileData(fileData);
     
@@ -446,7 +477,12 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
     
     let coverData = proj.coverImageData || null;
     if (coverData === "indexeddb") {
-      coverData = await getLargeFile(`cover_${proj.id}`);
+      try {
+        coverData = await getLargeFile(`cover_${proj.id}`);
+      } catch (dbErr) {
+        console.error("Erro ao obter imagem de capa do IndexedDB:", dbErr);
+        coverData = null;
+      }
     }
     setCoverImageData(coverData);
     
@@ -760,12 +796,32 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
     <AnimatePresence>
       {isOpen && (
         <div id="admin-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
-          {/* Overlay click to close */}
-          <div className="absolute inset-0 cursor-default" onClick={handleClose} />
+          {/* Overlay click to close with mousedown/mouseup protection */}
+          <div 
+            className="absolute inset-0 cursor-default" 
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setMouseDownOnBackdrop(true);
+              }
+            }}
+            onMouseUp={(e) => {
+              if (recentlyClosedSubModalRef.current) {
+                recentlyClosedSubModalRef.current = false;
+                setMouseDownOnBackdrop(false);
+                return;
+              }
+              if (mouseDownOnBackdrop && e.target === e.currentTarget) {
+                handleClose();
+              }
+              setMouseDownOnBackdrop(false);
+            }}
+          />
 
           <motion.div
             id="admin-modal-container"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -2255,9 +2311,11 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
             {optionsProject && (
               <div 
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOptionsProject(null);
+                  closeOptionsProject();
                 }}
               >
                 <motion.div
@@ -2265,6 +2323,8 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="w-full max-w-md bg-[#0a0a14] border border-white/10 rounded-3xl p-6 shadow-2xl relative space-y-6"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex justify-between items-center pb-3 border-b border-white/5">
@@ -2274,7 +2334,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setOptionsProject(null);
+                        closeOptionsProject();
                       }}
                       className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer focus:outline-none"
                     >
@@ -2305,7 +2365,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "texto");
-                        setTimeout(() => setOptionsProject(null), 100);
+                        setTimeout(() => closeOptionsProject(), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-amber-500/10 hover:text-amber-450 border border-white/5 hover:border-amber-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2328,7 +2388,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "editar_capa");
-                        setTimeout(() => setOptionsProject(null), 100);
+                        setTimeout(() => closeOptionsProject(), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-purple-500/10 hover:text-purple-450 border border-white/5 hover:border-purple-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2340,7 +2400,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "reenviar_ficheiro");
-                        setTimeout(() => setOptionsProject(null), 100);
+                        setTimeout(() => closeOptionsProject(), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-emerald-500/10 hover:text-emerald-450 border border-white/5 hover:border-emerald-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2353,7 +2413,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setTimeout(() => setOptionsProject(null), 100);
+                        setTimeout(() => closeOptionsProject(), 100);
                       }}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer focus:outline-none"
                     >
@@ -2368,19 +2428,23 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
             {viewingCoverUrl && (
               <div 
                 className="fixed inset-0 z-55 flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setViewingCoverUrl(null);
+                  closeViewingCoverUrl();
                 }}
               >
                 <div 
                   className="relative max-w-lg w-full flex flex-col items-center"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setViewingCoverUrl(null);
+                      closeViewingCoverUrl();
                     }}
                     className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/25 text-white rounded-full transition-all cursor-pointer focus:outline-none"
                     title="Fechar"

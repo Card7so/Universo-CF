@@ -37,9 +37,10 @@ export default function ContactSection({ isOpen, onClose }: ContactSectionProps)
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error" | "security_error">("idle");
   const [isSecurityVerified, setIsSecurityVerified] = useState(false);
   const [securityLog, setSecurityLog] = useState<string>("Pronto para transmissão segura.");
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
 
   const sanitizeInput = (val: string) => {
     // Blocks injection patterns and script tags dynamically
@@ -95,8 +96,21 @@ export default function ContactSection({ isOpen, onClose }: ContactSectionProps)
     <AnimatePresence>
       {isOpen && (
         <div id="contact-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-          {/* Overlay click to close */}
-          <div className="absolute inset-0 cursor-default" onClick={onClose} />
+          {/* Overlay click to close with mousedown/mouseup protection */}
+          <div 
+            className="absolute inset-0 cursor-default" 
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setMouseDownOnBackdrop(true);
+              }
+            }}
+            onMouseUp={(e) => {
+              if (mouseDownOnBackdrop && e.target === e.currentTarget) {
+                onClose();
+              }
+              setMouseDownOnBackdrop(false);
+            }}
+          />
 
           <motion.div
             id="contact-modal-container"
