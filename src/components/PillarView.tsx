@@ -23,6 +23,7 @@ import {
 import { CustomProject } from "../types";
 // @ts-ignore
 import minsaLogo from "../assets/images/minsa_prep_cf_logo_1782517690942.jpg";
+import AsyncProjectImage from "./AsyncProjectImage";
 
 interface PillarViewProps {
   category: "apps" | "books" | "music" | "outros";
@@ -333,22 +334,12 @@ export default function PillarView({ category, onBack }: PillarViewProps) {
                     {/* App Image container */}
                     <div className="w-full md:w-44 flex-shrink-0">
                       <div className="w-full aspect-video md:aspect-square rounded-2xl overflow-hidden border border-white/10 relative shadow-inner bg-black/40">
-                        <img
-                          src={project.coverImageData && project.coverImageData !== "indexeddb" ? project.coverImageData : (
-                            project.title.toLowerCase().includes("minsa") || 
-                            project.title.toLowerCase().includes("prep") || 
-                            project.title.toLowerCase().includes("cf")
-                              ? minsaLogo
-                              : (
-                                  category === "apps" ? minsaLogo :
-                                  category === "books" ? "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=500&q=80" :
-                                  category === "music" ? "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=500&q=80" :
-                                  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=500&q=80"
-                                )
-                          )}
-                          alt={project.title}
+                        <AsyncProjectImage
+                          projectId={project.id}
+                          title={project.title}
+                          type={project.type}
+                          coverImageData={project.coverImageData}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          referrerPolicy="no-referrer"
                         />
                       </div>
                     </div>

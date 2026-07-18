@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { CustomProject } from "../types";
+import { getLargeFile } from "./indexedDB";
 
 /**
  * Generates a full-stack offline-ready static website bundle (HTML + CSS + JS) as a ZIP file.
@@ -14,8 +15,36 @@ export async function generateSiteZip(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  // Create clean dehydrated array of projects to embed (including their files/covers if hydrated)
-  const cleanProjects = projects.map(p => ({
+  // Hydrate files and covers from IndexedDB asynchronously if they are set to "indexeddb"
+  const hydratedProjects: CustomProject[] = [];
+  for (const p of projects) {
+    let fileData = p.fileData;
+    if (fileData === "indexeddb") {
+      try {
+        fileData = await getLargeFile(`file_${p.id}`) || undefined;
+      } catch (err) {
+        console.error(`Erro ao obter ficheiro ${p.id} do IndexedDB durante exportação:`, err);
+      }
+    }
+
+    let coverImageData = p.coverImageData;
+    if (coverImageData === "indexeddb") {
+      try {
+        coverImageData = await getLargeFile(`cover_${p.id}`) || undefined;
+      } catch (err) {
+        console.error(`Erro ao obter capa ${p.id} do IndexedDB durante exportação:`, err);
+      }
+    }
+
+    hydratedProjects.push({
+      ...p,
+      fileData,
+      coverImageData,
+    });
+  }
+
+  // Create clean array of projects to embed (including their files/covers if hydrated)
+  const cleanProjects = hydratedProjects.map(p => ({
     id: p.id,
     type: p.type,
     title: p.title,

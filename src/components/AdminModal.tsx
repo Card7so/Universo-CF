@@ -47,6 +47,7 @@ import { generateSiteZip } from "../utils/exporter";
 import UniversoIAChat from "./UniversoIAChat";
 // @ts-ignore
 import minsaLogo from "../assets/images/minsa_prep_cf_logo_1782517690942.jpg";
+import AsyncProjectImage from "./AsyncProjectImage";
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -764,6 +765,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
           <motion.div
             id="admin-modal-container"
+            onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -1331,22 +1333,12 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                   <div className="flex gap-3 min-w-0 flex-1">
                                     {/* App Image view inside Admin list */}
                                     <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0 flex items-center justify-center">
-                                      <img
-                                        src={proj.coverImageData && proj.coverImageData !== "indexeddb" ? proj.coverImageData : (
-                                          proj.title.toLowerCase().includes("minsa") || 
-                                          proj.title.toLowerCase().includes("prep") || 
-                                          proj.title.toLowerCase().includes("cf")
-                                            ? minsaLogo
-                                            : (
-                                                proj.type === "apps" ? minsaLogo :
-                                                proj.type === "books" ? "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=500&q=80" :
-                                                proj.type === "music" ? "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=500&q=80" :
-                                                "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=500&q=80"
-                                              )
-                                        )}
-                                        alt={proj.title}
+                                      <AsyncProjectImage
+                                        projectId={proj.id}
+                                        title={proj.title}
+                                        type={proj.type}
+                                        coverImageData={proj.coverImageData}
                                         className="w-full h-full object-cover"
-                                        referrerPolicy="no-referrer"
                                       />
                                     </div>
 
@@ -2292,19 +2284,11 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
                   <div className="flex gap-4 items-center p-3.5 rounded-2xl bg-white/2 border border-white/5">
                     <div className="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex-shrink-0">
-                      <img
-                        src={optionsProject.coverImageData && optionsProject.coverImageData !== "indexeddb" ? optionsProject.coverImageData : (
-                          optionsProject.title.toLowerCase().includes("minsa") || 
-                          optionsProject.title.toLowerCase().includes("prep") || 
-                          optionsProject.title.toLowerCase().includes("cf")
-                            ? minsaLogo
-                            : (
-                                optionsProject.type === "books" ? "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=500&q=80" :
-                                optionsProject.type === "music" ? "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=500&q=80" :
-                                "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=500&q=80"
-                              )
-                        )}
-                        alt={optionsProject.title}
+                      <AsyncProjectImage
+                        projectId={optionsProject.id}
+                        title={optionsProject.title}
+                        type={optionsProject.type}
+                        coverImageData={optionsProject.coverImageData}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -2321,7 +2305,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "texto");
-                        setOptionsProject(null);
+                        setTimeout(() => setOptionsProject(null), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-amber-500/10 hover:text-amber-450 border border-white/5 hover:border-amber-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2344,7 +2328,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "editar_capa");
-                        setOptionsProject(null);
+                        setTimeout(() => setOptionsProject(null), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-purple-500/10 hover:text-purple-450 border border-white/5 hover:border-purple-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2356,7 +2340,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOptionSelect(optionsProject, "reenviar_ficheiro");
-                        setOptionsProject(null);
+                        setTimeout(() => setOptionsProject(null), 100);
                       }}
                       className="flex items-center gap-3 w-full px-4 py-3 bg-white/2 hover:bg-emerald-500/10 hover:text-emerald-450 border border-white/5 hover:border-emerald-500/20 rounded-xl text-xs font-bold uppercase tracking-wider text-left text-slate-300 transition-all group cursor-pointer focus:outline-none"
                     >
@@ -2369,7 +2353,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setOptionsProject(null);
+                        setTimeout(() => setOptionsProject(null), 100);
                       }}
                       className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer focus:outline-none"
                     >
