@@ -18,7 +18,7 @@ export default function AsyncProjectImage({
   coverImageData,
   className = "w-full h-full object-cover",
 }: AsyncProjectImageProps) {
-  const [src, setSrc] = useState<string>("");
+  const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const getFallback = () => {
@@ -72,7 +72,7 @@ export default function AsyncProjectImage({
     };
   }, [projectId, title, type, coverImageData]);
 
-  if (loading) {
+  if (loading || !src) {
     return (
       <div className={`${className} flex items-center justify-center bg-slate-900 border border-white/5`}>
         <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
